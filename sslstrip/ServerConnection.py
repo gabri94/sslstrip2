@@ -144,14 +144,16 @@ class ServerConnection(HTTPClient):
             # apply the regex to find https URLs in the page
             iterator = re.finditer(ServerConnection.urlExpression, data)
         for match in iterator:
-            # for each match of the regexp memorize in the dictionary substituion the original url with the spoofed one
+            # for each match of the regexp it memorizes in substitution[]
+            # the original url associated with the spoofed one
             url = match.group()
             logging.debug("Found secure reference: " + url)
             newurl = self.urlMonitor.addSecureLink(self.client.getClientIP(), url)
             logging.debug("LEO replacing %s => %s" % (url, newurl))
             substitution[url] = newurl
         if len(substitution) > 0:
-            # create and apply a regexp to subtitute all the occurencies of the original url with the spoofed ones in the page
+            # apply a regexp to substitute all the occurencies
+            # of the original URLs with the spoofed ones
             dregex = re.compile("(%s)" % "|".join(map(re.escape, substitution.keys())))
             data = dregex.sub(lambda x: str(substitution[x.string[x.start():x.end()]]), data)
         return data

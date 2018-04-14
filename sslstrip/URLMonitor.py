@@ -15,7 +15,7 @@ class URLMonitor:
     _instance           = None
     substitution        = {} # LEO: diccionario host / substitution
     real                = {} # LEO: diccionario host / real
-
+    patchDict           = {'return"https:"': 'return"http:"'}
     def __init__(self):
         self.strippedURLs       = set()
         self.strippedURLPorts   = {}
@@ -29,11 +29,11 @@ class URLMonitor:
 
         if (client, url) in self.strippedURLs:
             logging.debug("(%s, %s) in strippedURLs" % (client, url))
-        return (client,url) in self.strippedURLs
+        return (client, url) in self.strippedURLs
 
     def getSecurePort(self, client, url):
-        if (client,url) in self.strippedURLs:
-            return self.strippedURLPorts[(client,url)]
+        if (client, url) in self.strippedURLs:
+            return self.strippedURLPorts[(client, url)]
         else:
             return 443
 
@@ -62,13 +62,11 @@ class URLMonitor:
             # self.substitution is a dictionary that maps the real hostname to the spoofed one.
             # the association real->spoofed host will be used to replace the links in the page with these ones
             # You have to add an entry that maps the real host with the spoofed one
-            fake_domain = "w" + host
-            real_domain = host
             # self.read is a dictionary that maps the spoofed hostname to the real one.
             # the association spoofed-> real host (inverse of the previous) will be used to manage the headers and reply to the client
             # You have to add an entry that maps the spoofed host with the real one
-            self.substitution[real_domain] = fake_domain
-            self.real[fake_domain] = real_domain
+            self.substitution[host] = "w" + host
+            self.real["w" + host] = host
         logging.debug("LEO: ssl host      (%s) tokenized (%s)" % (host, self.substitution[host]))
 
         url = 'http://' + host + path
